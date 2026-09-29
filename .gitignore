@@ -1,0 +1,16 @@
+# 로컬 환경 값 (예시 파일만 커밋)
+.env
+
+# 측정 결과 (날짜별 폴더). 필요하면 특정 파일만 강제로 추가: git add -f results/...
+results/*
+!results/.gitkeep
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# OS / 에디터
+.DS_Store
+.idea/
+.vscode/

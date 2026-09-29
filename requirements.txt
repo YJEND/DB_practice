@@ -1,0 +1,4 @@
+# 측정 도구 / 실습 스크립트 의존성
+#   python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+psycopg[binary]>=3.2
+redis>=5.0

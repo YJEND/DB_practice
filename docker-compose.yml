@@ -1,0 +1,80 @@
+# ------------------------------------------------------------------
+# DB 심화 실습 환경
+#   기본:  postgres(pgvector) + redis          -> make up
+#   선택:  mysql(InnoDB) 비교용 profile        -> make up-mysql
+# 태그는 Docker Hub API로 실제 존재를 확인한 값입니다 (2026-09-29 기준).
+# ------------------------------------------------------------------
+services:
+  postgres:
+    # pgvector 0.8.6 + PostgreSQL 18 (Debian bookworm), arm64/amd64 모두 지원
+    image: pgvector/pgvector:0.8.6-pg18
+    container_name: ${COMPOSE_PROJECT_NAME:-dbpractice}-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lab}
+      POSTGRES_DB: ${POSTGRES_DB:-lab}
+      # PG18 이미지는 PGDATA 가 /var/lib/postgresql/18/docker 로 바뀌었습니다.
+      # 그래서 볼륨은 /var/lib/postgresql/data 가 아니라 /var/lib/postgresql 에 마운트합니다.
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql
+      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    # 병렬 쿼리/정렬이 공유 메모리를 쓰므로 기본 64MB 보다 넉넉히
+    shm_size: 512mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lab} -d ${POSTGRES_DB:-lab}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+  redis:
+    image: redis:8.10.2
+    container_name: ${COMPOSE_PROJECT_NAME:-dbpractice}-redis
+    # AOF 를 켜서 재시작해도 키가 남게 함 (캐시/rate limit 실습 중 재시작 영향 관찰용)
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  mysql:
+    # 선택 프로필: InnoDB 와 같은 시나리오(격리 수준, 락)를 비교할 때만 기동
+    image: mysql:8.4.11
+    container_name: ${COMPOSE_PROJECT_NAME:-dbpractice}-mysql
+    profiles: ["mysql"]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-lab}
+      MYSQL_USER: ${MYSQL_USER:-lab}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-lab}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-lab}
+    command:
+      - --innodb-buffer-pool-size=1G
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  pg_data:
+  redis_data:
+  mysql_data:
