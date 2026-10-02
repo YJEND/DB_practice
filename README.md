@@ -155,6 +155,8 @@ Lab 03 의 격리 수준 시나리오, Lab 04 의 락 시나리오를 같은 순
 
 **`make psql` 에서 한글이 깨짐** — 터미널 인코딩을 UTF-8 로. 컨테이너의 DB 인코딩은 UTF8 입니다.
 
+**VS Code(Database Client 확장 등)에서 테이블이 안 보임** — 접속 설정의 Database 를 `lab` 으로 지정하세요. `postgres` 데이터베이스는 비어 있습니다. 테이블은 `lab` → `public` → `Tables` 아래에 있습니다. 시드 전에 연결했다면 우클릭 → Refresh.
+
 **Apple Silicon** — 세 이미지 모두 arm64 를 지원합니다. `platform` 지정은 필요 없습니다.
 
 **Python 스크립트가 접속 못 함** — 스크립트는 호스트에서 `localhost:${POSTGRES_PORT}` 로 붙습니다. `make up` 이 끝났는지, `.env` 의 포트가 맞는지 확인. `DATABASE_URL` 환경변수가 있으면 그것을 우선 사용합니다.
